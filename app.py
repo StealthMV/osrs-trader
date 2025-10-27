@@ -501,12 +501,12 @@ def main():
         st.cache_data.clear()
         st.rerun()
     
-    # 🔥 QUANTUM-POWERED HEADER
+    # 🔥 MV29 HEADER
     st.markdown("""
     <div style='text-align: center; padding: 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);'>
-        <h1 style='color: white; font-size: 3.5em; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>💎 OSRS QUANTUM TRADER</h1>
-        <p style='color: #f0f0f0; font-size: 1.3em; margin: 10px 0 0 0; font-weight: 500;'>The Most Intelligent Trading System in RuneScape</p>
-        <p style='color: #d0d0d0; font-size: 1em; margin: 5px 0 0 0;'>🧠 Quantum Intelligence • 🔮 Price Prediction • 🧬 Genetic Optimization • 🛡️ Manipulation Detection</p>
+        <h1 style='color: white; font-size: 3.5em; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>💎 MV29 CAPITAL</h1>
+        <p style='color: #f0f0f0; font-size: 1.3em; margin: 10px 0 0 0; font-weight: 500;'>Grand Exchange Algorithmic Trading Desk</p>
+        <p style='color: #d0d0d0; font-size: 1em; margin: 5px 0 0 0;'>📊 Quantitative Analysis • 🎯 Alpha Generation • ⚡ High-Frequency Execution • 🛡️ Risk Management</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -964,7 +964,7 @@ def main():
         if best_overall is None:
             best_overall = top_candidates.head(1)
             falling_knife_analysis = detect_falling_knife(
-                int(top_candidates[0, 'item_id']), 
+                int(top_candidates[0, 'item_id']),
                 top_candidates[0, 'name']
             )
     else:
@@ -972,7 +972,15 @@ def main():
         falling_knife_analysis = None
     
     if best_overall is not None and len(best_overall) > 0:
-        best = best_overall[0]
+        # Safely extract the top row as a dict
+        try:
+            best_list = best_overall.head(1).to_dicts()
+            if not best_list:
+                raise ValueError("no best row available")
+            best_row = best_list[0]
+        except Exception:
+            st.warning("⚠️ Unable to determine THE ULTIMATE PICK due to insufficient data.")
+            best_row = None
         
         # Create dramatic header
         st.markdown("""
@@ -982,13 +990,14 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Convert to dict for easier access
-        best_row = best.to_dicts()[0]
-        best_buy = int(best_row['avgLowPrice'])
-        best_sell = int(best_row['avgHighPrice'])
-        best_profit_per = int(best_row['net_edge'])
-        best_volume = int(best_row['hourly_volume'])
-        best_strategy = best_row.get('strategy_type', 'UNKNOWN')
+        if best_row is None:
+            st.info("No suitable 'Ultimate Pick' available")
+        else:
+            best_buy = int(best_row.get('avgLowPrice', 0))
+            best_sell = int(best_row.get('avgHighPrice', 0))
+            best_profit_per = int(best_row.get('net_edge', 0))
+            best_volume = int(best_row.get('hourly_volume', 0))
+            best_strategy = best_row.get('strategy_type', 'UNKNOWN')
         
         # Show momentum status (already checked above)
         if falling_knife_analysis['is_falling_knife']:
@@ -2219,11 +2228,22 @@ Profit:   {format_gp(total_profit)}
                 selected_item = matching_items.filter(pl.col('name') == selected_item_name)
             else:
                 selected_item = matching_items
-                selected_item_name = matching_items[0]['name']
-            
+                # Safely extract the single match
+                try:
+                    row_list = selected_item.head(1).to_dicts()
+                    selected_item_name = row_list[0].get('name') if row_list else selected_item.select('name').to_series().to_list()[0]
+                except Exception:
+                    selected_item_name = selected_item.select('name').to_series().to_list()[0]
+
             if len(selected_item) > 0:
-                item_row = selected_item[0].to_dicts()[0]
-                item_id = int(item_row['item_id'])
+                try:
+                    item_row = selected_item.head(1).to_dicts()[0]
+                except Exception:
+                    st.error("❌ Unable to read selected item data")
+                    item_row = None
+
+                if item_row:
+                    item_id = int(item_row.get('item_id', 0))
                 
                 # Display item info
                 icol1, icol2, icol3 = st.columns([1, 1, 1])
